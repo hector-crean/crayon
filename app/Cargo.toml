@@ -1,0 +1,18 @@
+[package]
+name = "dendron_app"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+specta = { workspace = true }
+bevy = { workspace = true }
+serde = { workspace = true }
+wasm-bindgen = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+crossbeam-channel = { workspace = true }
+color-eyre = { workspace = true }
+thiserror = { workspace = true }
+itertools = { workspace = true }
+dendron_types = { path = "../crates/dendron_types"}
