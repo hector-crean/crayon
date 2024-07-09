@@ -1,5 +1,5 @@
 [package]
-name = "dendron_types"
+name = "crayon_types"
 version = "0.1.0"
 edition = "2021"
 

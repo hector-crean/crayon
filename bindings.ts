@@ -4,7 +4,7 @@ export type Cursor = { type: "Default" } | { type: "Grabbing" } | { type: "Cross
 
 export type CursorChangeEvent = { cursor: Cursor }
 
-export type DendronEvent = ({ type: "InteractionModeChange" } & InteractionModeChangeEvent) | ({ type: "InteractionToolChange" } & InteractionToolChangeEvent) | ({ type: "CursorChange" } & CursorChangeEvent)
+export type DrayonEvent = ({ type: "InteractionModeChange" } & InteractionModeChangeEvent) | ({ type: "InteractionToolChange" } & InteractionToolChangeEvent) | ({ type: "CursorChange" } & CursorChangeEvent)
 
 export type InteractionMode = 
 /**
@@ -30,7 +30,7 @@ export type InteractionToolChangeEvent = { interactionTool: InteractionTool }
 
 export type ShapeVariant = "Rectangle" | "Ellipse" | "Star" | "Polygon"
 
-export type SpectaExport = { events: DendronEvent }
+export type SpectaExport = { events: DrayonEvent }
 
 export type Vec2 = [number, number]
 

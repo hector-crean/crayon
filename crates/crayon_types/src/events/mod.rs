@@ -26,7 +26,7 @@ pub struct CursorChangeEvent {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type, Event)]
 #[serde(tag = "type")]
-pub enum DendronEvent {
+pub enum DrayonEvent {
     InteractionModeChange(InteractionModeChangeEvent),
     InteractionToolChange(InteractionToolChangeEvent),
     CursorChange(CursorChangeEvent),
