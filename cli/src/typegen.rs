@@ -1,4 +1,4 @@
-use dendron_types::events::DendronEvent;
+use crayon_types::events::DrayonEvent;
 use specta::{
     ts::{ExportConfig, ExportError},
     TypeCollection,
@@ -9,7 +9,7 @@ use std::{fs::File, io::Write, path::Path};
 
 pub fn generate_typescript_bindings<P: AsRef<Path>>(output_path: P) -> Result<(), ExportError> {
     let code = TypeCollection::default()
-        .register::<DendronEvent>()
+        .register::<DrayonEvent>()
         .export_ts(&ExportConfig::default())?;
 
     let mut file = File::create(output_path)?;
