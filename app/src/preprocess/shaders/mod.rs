@@ -2,14 +2,14 @@ use bevy::{asset::embedded_asset, prelude::*};
 use itertools::Itertools;
 
 pub(crate) const PREPROCESS_SHADER: &str =
-    "embedded://dendron_app/preprocess/shaders/preprocess.wgsl";
+    "embedded://crayon_app/preprocess/shaders/preprocess.wgsl";
 
 pub(crate) fn load_preprocess_shaders(app: &mut App) {
     embedded_asset!(app, "preprocess.wgsl");
 
     // InternalShaders::load(
     //     app,
-    //     &["embedded://dendron/preprocess/shaders/preprocess.wgsl"],
+    //     &["embedded://crayon/preprocess/shaders/preprocess.wgsl"],
     // );
 }
 

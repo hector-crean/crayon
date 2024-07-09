@@ -1,5 +1,5 @@
-use dendron_app::DendronApp;
+use crayon_app::DrayonApp;
 
 fn main() {
-    let app = DendronApp::new().run();
+    let app = DrayonApp::new().run();
 }

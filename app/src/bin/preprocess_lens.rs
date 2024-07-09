@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use dendron_app::preprocess::PreprocessLensPlugin;
+use crayon_app::preprocess::PreprocessLensPlugin;
 
 fn main() {
     App::new()

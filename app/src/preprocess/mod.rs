@@ -34,15 +34,17 @@ fn spawn_task(mut commands: Commands) {
         .insert(ComputeDistortionFromLesion(task));
 }
 
-fn handle_tasks(mut commands: Commands, mut distortion_compute_tasks: Query<&mut ComputeDistortionFromLesion>) {
+fn handle_tasks(
+    mut commands: Commands,
+    mut distortion_compute_tasks: Query<&mut ComputeDistortionFromLesion>,
+) {
     for mut task in &mut distortion_compute_tasks {
-        if let Some(mut commands_queue) = block_on(future::poll_once(&mut task.0)) {
-            // append the returned command queue to have it execute later
-            commands.append(&mut commands_queue);
-        }
+        // if let Some(mut commands_queue) = block_on(future::poll_once(&mut task.0)) {
+        //     // append the returned command queue to have it execute later
+        //     commands.append(&mut commands_queue);
+        // }
     }
 }
-
 
 // The length of the buffer sent to the gpu
 const BUFFER_LEN: usize = 16;
@@ -141,7 +143,7 @@ impl FromWorld for Buffers {
 
         // Create the buffer that will be accessed by the gpu
         let mut gpu_buffer = BufferVec::new(BufferUsages::STORAGE | BufferUsages::COPY_SRC);
-        
+
         for _ in 0..BUFFER_LEN {
             // Init the buffer with zeroes
             gpu_buffer.push(0);

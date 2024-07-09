@@ -1,5 +1,5 @@
 [package]
-name = "dendron_app"
+name = "crayon_app"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,4 +15,4 @@ crossbeam-channel = { workspace = true }
 color-eyre = { workspace = true }
 thiserror = { workspace = true }
 itertools = { workspace = true }
-dendron_types = { path = "../crates/dendron_types"}
+crayon_types = { path = "../crates/crayon_types"}
