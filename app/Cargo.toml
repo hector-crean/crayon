@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 specta = { workspace = true }
-bevy = { workspace = true }
+bevy = { workspace = true, features=["file_watcher"] }
 serde = { workspace = true }
 wasm-bindgen = { workspace = true }
 serde-wasm-bindgen = { workspace = true }
@@ -16,3 +16,5 @@ color-eyre = { workspace = true }
 thiserror = { workspace = true }
 itertools = { workspace = true }
 crayon_types = { path = "../crates/crayon_types"}
+bevy_camera = { path = "../crates/bevy_camera" }
+bevy_mod_picking = { workspace = true, features = ["all"] }

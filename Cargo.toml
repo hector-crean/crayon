@@ -12,6 +12,7 @@ specta = { git = "https://github.com/oscartbeaumont/specta", features = [
 ] }
 # specta = { version = "1.0.5", features = ["serde", "typescript", "export"]}
 bevy = { version = "0.14"}
+bevy_mod_picking = { version = "0.20.1"}
 serde = { version = "1.0.199", features = ["derive"] }
 wasm-bindgen = "0.2.92"
 serde-wasm-bindgen = "0.6.5"

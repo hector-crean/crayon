@@ -1,34 +1,60 @@
 pub mod materials;
 pub mod plugins;
 pub mod preprocess;
+pub mod state;
 
 use bevy::app::App;
 use bevy::prelude::*;
+use bevy_camera::{
+    pan_orbit_camera::{OrbitCameraController, OrbitCameraControllerPlugin},
+    CameraMode,
+};
+use bevy_mod_picking::{
+    debug::DebugPickingPlugin, prelude::low_latency_window_plugin, DefaultPickingPlugins,
+};
 use crayon_types::events::DrayonEvent;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use materials::lens_material::LensMaterialPlugin;
 use plugins::message_bridge::MsgBridgePlugin;
+use state::camera::CameraModeImpl;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+
+#[derive(Component)]
+pub struct MainCamera;
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((DefaultPlugins, LensMaterialPlugin))
-            .add_systems(
-                Startup,
-                (LensMaterialPlugin::example_setup, Self::setup_camera),
-            );
+        app.add_plugins((
+            DefaultPlugins.set(AssetPlugin {
+                watch_for_changes_override: Some(true),
+                ..Default::default()
+            }),
+            LensMaterialPlugin,
+            OrbitCameraControllerPlugin::<CameraModeImpl>::default(),
+            DefaultPickingPlugins
+                .build()
+                .disable::<DebugPickingPlugin>(),
+        ))
+        .add_systems(
+            Startup,
+            (LensMaterialPlugin::example_setup, Self::setup_camera),
+        );
     }
 }
 
 impl GamePlugin {
     fn setup_camera(mut commands: Commands) {
-        // camera
-        commands.spawn(Camera3dBundle {
-            transform: Transform::from_xyz(0., 5.0, 0.).looking_at(Vec3::ZERO, Vec3::Y),
-            ..default()
-        });
+        commands.spawn((
+            Camera3dBundle {
+                transform: Transform::from_xyz(0., 5.0, 0.).looking_at(Vec3::ZERO, Vec3::Y),
+                // projection: Projection::Orthographic(OrthographicProjection::default()),
+                ..default()
+            },
+            MainCamera,
+            OrbitCameraController::default(),
+        ));
     }
 }
 

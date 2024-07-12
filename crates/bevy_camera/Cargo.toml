@@ -1,0 +1,8 @@
+[package]
+name = "bevy_camera"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true }
+bevy_mod_picking = { workspace = true, features = ["all"] }
