@@ -1,0 +1,17 @@
+[package]
+name = "block3d_algorithm"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+block3d_core = { workspace = true }
+tracing = { workspace = true }
+tracing-test = { workspace = true }
+rand = { workspace = true }
+thiserror = { workspace = true }
+
+petgraph = "0.6.5"
+fixedbitset = "0.4"
+strum = { workspace = true, features = ["derive"] }

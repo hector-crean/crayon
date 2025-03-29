@@ -1,0 +1,47 @@
+[package]
+name = "bevy_debug_grid"
+description = "A bevy plugin for creating grids, for debugging purposes"
+version = "0.7.0"
+repository = "https://github.com/romenjelly/bevy_debug_grid"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+keywords = ["bevy"]
+exclude = [
+    "/examples/",
+    "/assets/",
+]
+
+[dependencies]
+bevy = { version = "0.15", default-features = false, features = [
+    "bevy_render",
+    "bevy_pbr",
+    "bevy_asset",
+] }
+
+[dev-dependencies]
+bevy = "0.15"
+bevy_spectator = "0.7.0"
+
+[[example]]
+name = "default_cube"
+path = "examples/default_cube.rs"
+
+[[example]]
+name = "moving_grid"
+path = "examples/moving_grid.rs"
+
+[[example]]
+name = "changing_grid"
+path = "examples/changing_grid.rs"
+
+[[example]]
+name = "changing_grid_axis"
+path = "examples/changing_grid_axis.rs"
+
+[[example]]
+name = "dynamic_floor_grid"
+path = "examples/dynamic_floor_grid.rs"
+
+[[example]]
+name = "render_layers"
+path = "examples/render_layers.rs"

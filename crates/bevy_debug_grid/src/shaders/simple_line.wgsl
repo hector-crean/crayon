@@ -1,0 +1,15 @@
+#import bevy_pbr::forward_io::VertexOutput
+
+struct SimpleLineMaterial {
+    color: vec4<f32>,
+};
+
+@group(2) @binding(0)
+var<uniform> material: SimpleLineMaterial;
+
+@fragment
+fn fragment(
+    mesh: VertexOutput,
+) -> @location(0) vec4<f32> {
+    return material.color;
+}

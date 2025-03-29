@@ -1,0 +1,40 @@
+[package]
+edition = "2021"
+name = "bevy_polyline"
+version = "0.11.0"
+description = "Polyline Rendering for Bevy"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ForesightMiningSoftwareCorporation/bevy_polyline"
+homepage = "https://github.com/ForesightMiningSoftwareCorporation/bevy_polyline"
+documentation = "https://docs.rs/bevy_polyline"
+readme = "README.md"
+keywords = ["bevy", "gamedev", "polyline", "graphics"]
+categories = ["rendering", "game-development"]
+authors = [
+    "Foresight Mining Software Corporation",
+    "Jonas Matser",
+    "Aevyrie Roessler",
+]
+
+[dependencies]
+bitflags = "2.3"
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_asset",
+] }
+bytemuck = "1.16.1"
+
+[dev-dependencies]
+lazy_static = "1.4.0"
+rand = "0.8.4"
+ringbuffer = "0.15"
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_window",
+    "bevy_winit",
+    "bevy_pbr",
+    "x11",
+    "tonemapping_luts",
+    "ktx2",
+    "zstd",
+] }

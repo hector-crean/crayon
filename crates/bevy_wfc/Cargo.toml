@@ -1,0 +1,12 @@
+[package]
+name = "bevy_wfc"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+block3d_algorithm = { workspace = true }
+block3d_core = { workspace = true }
+bevy = { workspace = true }
+crossbeam-channel = { workspace = true }

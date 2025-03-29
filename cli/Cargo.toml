@@ -1,0 +1,24 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ts-rs = { workspace = true }
+clap =  { version = "4.5.4", features = ["derive"]}
+thiserror = { workspace = true }
+color-eyre = { workspace = true }
+crayon_core = { workspace = true }
+resvg = "0.30.0"
+usvg = "0.30.0"
+image = "0.24.6"
+tiny-skia = "0.9.1"
+crayon_app = { path = "../app"}
+naga = { version = "22.1.0", features = ["wgsl-in", "wgsl-out"] }
+naga_oil = "0.15.0"
+walkdir = "2.5.0"
+regex = "1.11.0"
+las = { version = "0.9.3", features = ["laz"] }
+ply-rs = "0.1.3"

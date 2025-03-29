@@ -1,0 +1,64 @@
+[workspace]
+resolver = "2"
+edition = "2021"
+members = ["app", "cli", "crates/*"]
+exclude = []
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Hector Crean <hectorcrean@gmail.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+
+[workspace.dependencies]
+crayon_core = { path = "crates/crayon_core" }
+bevy_camera = { path = "crates/bevy_camera" }
+bevy_drag = { path = "crates/bevy_drag" }
+bevy_mod_reqwest = { path = "crates/bevy_mod_reqwest" }
+bevy_polyline = { path = "crates/bevy_polyline" }
+block3d_core = { path = "crates/block3d_core" }
+block3d_algorithm = { path = "crates/block3d_algorithm" }
+bevy_debug_grid = { path = "crates/bevy_debug_grid" }
+bevy_wfc = { path = "crates/bevy_wfc" }
+ts-rs = { version = "10.1.0", features = ["serde-compat", "bytes",  "chrono", "serde_json", "tokio", "url", "uuid"] }
+bevy_mod_outline = "0.9"
+
+bevy_egui = "0.33.0"
+
+env_logger = "0.11.5"
+log = "0.4.22"
+tracing = "0.1.40"
+tracing-test = "0.2.5"
+rand = { version = "0.8.5", features = ["small_rng"] }
+getrandom = { version = "0.2.15", features = ["js"] }
+
+
+web-sys = "0.3.70"
+bevy = {version = "0.15.0", features = ["bevy_remote", "custom_cursor"] }
+
+bevy_gaussian_splatting = "3.0.0"
+serde = { version = "1.0.199", features = ["derive"] }
+wasm-bindgen = "0.2.93"
+wasm-bindgen-futures = "0.4.43"
+serde-wasm-bindgen = "0.6.5"
+js-sys = "0.3.70"
+crossbeam-channel = "0.5.12"
+color-eyre = "0.6.3"
+thiserror = "1.0.59"
+itertools = "0.13.0"
+image = "0.24"
+bitflags = "2.4"
+strum = { version = "0.26", features = ["derive"] }
+strum_macros = "0.26"
+bincode = "2.0.0-rc.3"
+bytemuck = "1.14"
+uom = "0.36.0"
+serde_json = { version = "1.0.116"}
+bevy_asset_loader = "0.22.0"
+bevy_web_asset = { version = "0.9"}
+reqwest = "0.12.7"
+uuid = { version = "1.1.2", features = ["v4", "serde"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+geojson = { version = "0.24.1"}
+leafwing-input-manager = { version = "0.16.0" }

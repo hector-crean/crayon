@@ -1,0 +1,1 @@
+Crossbeam channels provide a way for one thread (the sender) to send data to another thread (the receiver). This is useful in multi-threaded applications where different parts of the system need to exchange information or coordinate actions
