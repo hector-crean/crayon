@@ -1,4 +1,4 @@
-import "@liveblocks/react-ui/styles.css";
+
 import "@/app/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Metadata } from "next";
