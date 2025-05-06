@@ -15,14 +15,13 @@ const Threads = () => {
     const { threads } = useThreads();
     const { isSignedIn, user, isLoaded } = useUser();
   
-    // Log user info to debug
-    console.log("Current user in Threads:", user);
     if (!isSignedIn || !isLoaded) {
         return <div>Loading...</div>;
     }
+    console.log(user.firstName)
   
     return (
-      <main>
+      <main className="h-tablet overflow-y-auto">
         {threads.map((thread) => (
           <Thread 
             key={thread.id} 
@@ -34,7 +33,7 @@ const Threads = () => {
           className="composer" 
           // Optionally pass user info directly if needed
           metadata={{
-            name: user?.fullName || "Anonymous",
+            name: user?.firstName || "Anonymous From Composer",
             avatar: user?.imageUrl
           }}
         />

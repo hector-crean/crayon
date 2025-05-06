@@ -1,0 +1,83 @@
+[package]
+name = "server"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+block3d_core = { workspace = true }
+crayon_core = { workspace = true }
+# Serialization and Deserialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error Handling
+color-eyre = { workspace = true }
+thiserror = { workspace = true }
+
+
+# Web Framework and HTTP
+axum = { version = "0.7.5", features = ["macros", "multipart"] }
+tower-http = { version = "0.6.1", features = ["cors"] }
+http = "1.1.0"
+
+# Asynchronous Runtime
+tokio = { workspace = true }
+tokio-util = "0.7.13"
+# HTTP Client
+reqwest = { workspace = true }
+
+# Logging
+env_logger = { workspace = true }
+log  = { workspace = true }
+tracing  = { workspace = true }
+tracing-test  = { workspace = true }
+
+# UUID and Time Handling
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Environment Variables
+dotenv = { workspace = true }
+
+tower = { version = "0.5.1", features = ["util"] }
+
+surrealdb = { workspace = true }
+surrealdb-migrations = "2.0.0"
+
+sqlx = { workspace = true, optional = true}
+
+aws-sdk-s3 = { version = "1.48.0", features = ["behavior-version-latest"] }
+
+rand =  { workspace = true }
+rand_chacha = { workspace = true }
+rand_core =  { workspace = true }
+
+rstar = "0.12.2"
+num-traits = "0.2.19"
+rayon = { version = "1.10.0", features = ["web_spin_lock"] }
+
+strum = { workspace = true }
+
+
+
+ts-rs = { workspace = true }
+
+urlencoding = { workspace = true }
+
+# nalgebra = "0.32" # Comprehensive linear algebra
+# glam = "0.24"     # Fast, gaming-focused vector math
+# optimization = "0.3"        # Generic optimization algorithms
+# ndarray = "0.15"           # N-dimensional arrays
+# argmin = "0.8"             # Optimization framework
+# simba = "0.8"              # SIMD optimizations
+# kdtree = "0.7"           # KD-tree implementation
+# parry3d = "0.13"         # Collision detection
+# crossbeam = "0.8"        # Concurrent data structures
+url = { workspace = true }
+
+[features]
+postgres = ["dep:sqlx"]
+hashmap = []
+

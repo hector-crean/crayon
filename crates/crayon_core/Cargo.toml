@@ -9,3 +9,7 @@ edition = "2021"
 ts-rs = { workspace = true }
 bevy = { workspace = true }
 serde = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+surrealdb = { workspace = true }

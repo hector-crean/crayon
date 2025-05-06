@@ -15,6 +15,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import clsx from "clsx";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+
 function Inbox({ className, ...props }: ComponentPropsWithoutRef<"div">) {
   const { inboxNotifications } = useInboxNotifications();
 

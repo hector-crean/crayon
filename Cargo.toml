@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 edition = "2021"
-members = ["app", "cli", "crates/*"]
+members = ["app", "cli", "crates/*", "server"]
 exclude = []
 
 [workspace.package]
@@ -21,8 +21,11 @@ block3d_core = { path = "crates/block3d_core" }
 block3d_algorithm = { path = "crates/block3d_algorithm" }
 bevy_debug_grid = { path = "crates/bevy_debug_grid" }
 bevy_wfc = { path = "crates/bevy_wfc" }
-ts-rs = { version = "10.1.0", features = ["serde-compat", "bytes",  "chrono", "serde_json", "tokio", "url", "uuid"] }
+ts-rs = { version = "10.1.0", features = ["serde-compat", "bytes",  "chrono", "serde_json", "serde-json-impl", "tokio", "url", "uuid", "uuid-impl", "chrono-impl"] }
 bevy_mod_outline = "0.9"
+
+surrealdb = { version = "2.0.4", features = [ "kv-mem"] }
+
 
 bevy_egui = "0.33.0"
 
@@ -57,8 +60,36 @@ uom = "0.36.0"
 serde_json = { version = "1.0.116"}
 bevy_asset_loader = "0.22.0"
 bevy_web_asset = { version = "0.9"}
-reqwest = "0.12.7"
+reqwest = { version = "0.12.7", features = ["json"] }
 uuid = { version = "1.1.2", features = ["v4", "serde"] }
 chrono = { version = "0.4.39", features = ["serde"] }
 geojson = { version = "0.24.1"}
 leafwing-input-manager = { version = "0.16.0" }
+
+
+
+
+
+
+# Database
+sqlx = { version = "0.8.2", features = [
+    "runtime-tokio-rustls",
+    "uuid",
+    "time",
+    "chrono",
+    "postgres",
+    "macros"
+]}
+
+
+
+# Utils
+dotenv = "0.15.0"
+walkdir = "2.3.3"
+rand_chacha = "0.3.1"
+rand_core = { version = "0.6.4", features = ["std"] }
+tokio = { version = "1.40.0", features = ["full"] }
+url = "2.5.4"
+petgraph = "0.6.5"
+urlencoding = "2.1.3"
+wiremock = "0.5"
