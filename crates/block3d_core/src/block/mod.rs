@@ -21,7 +21,6 @@ pub enum BlockKind {
     ))]
     Door,
     
-    #[default]
     #[strum(props(
         icon = "icons/wall_48px.png",
         color = "#D3D3D3"  // Light gray
@@ -51,6 +50,14 @@ pub enum BlockKind {
         color = "#CD853F"  // Peru
     ))]
     Stairs,
+
+    #[strum(props(
+        icon = "icons/void_48px.png",
+        color = "#8B0000"  // Dark red
+    ))]
+    #[default]
+    Void,
+
 }
 
 

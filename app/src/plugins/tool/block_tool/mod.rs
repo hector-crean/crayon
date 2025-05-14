@@ -79,6 +79,11 @@ impl From<BlockKind> for RadialItemData {
                 color: palettes::tailwind::INDIGO_400.into(),
                 label: "Stairs".to_string(),
             },
+            BlockKind::Void => RadialItemData {
+                icon: "icons/void_48px.png".to_string(),
+                color: palettes::tailwind::RED_400.into(),
+                label: "Void".to_string(),
+            },
         }
     }
 }

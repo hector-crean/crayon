@@ -162,6 +162,7 @@ impl<T: Block3DLike> WFCGraph<T> {
                                 block3d_core::block::BlockKind::Ceiling => "C",
                                 block3d_core::block::BlockKind::Column => "O",
                                 block3d_core::block::BlockKind::Stairs => "S",
+                                block3d_core::block::BlockKind::Void => "V",
                             };
                             write!(&mut output, "{}|", symbol).unwrap();
                         },

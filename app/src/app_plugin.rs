@@ -20,7 +20,7 @@ use bevy_inspector_egui::bevy_egui::EguiContexts;
 use block3d_core::block::Block3DLike;
 use bevy_mod_reqwest::ReqwestPlugin;
 use bevy_polyline::PolylinePlugin;
-use bevy_wfc::{WFCPlugin, WFCSolveComplete, WFCSolveRequest};
+use bevy_wfc::{WFCPlugin, WFCSolveComplete, WFCSolveRequest, UserTriggeredCollapse};
 use block3d_core::block::lego_block::LegoBlock;
 use block3d_core::block::{Block3D, BlockKind};
 use block3d_core::Orientation;
@@ -29,6 +29,9 @@ use block3d_core::connection::{OrientedInterface, ConnectorInterface};
 use std::collections::HashSet;
 use std::time::Duration;
 use std::collections::HashMap;
+use bevy::input::common_conditions::input_just_pressed;
+use bevy::picking::events::Pointer;
+use bevy::picking::pointer::PointerButton;
 
 // Component to store block information for debugging
 #[derive(Component)]
@@ -116,6 +119,7 @@ impl Plugin for AppPlugin {
                     CrayonInEvent::handle.run_if(on_event::<CrayonInEvent>),
                     CrayonOutEvent::handle.run_if(on_event::<CrayonOutEvent>),
                     check_ui_interaction,
+                    handle_grid_click.run_if(on_event::<Pointer::<MouseButton>>),
                 ),
             );
 
@@ -444,5 +448,42 @@ fn check_ui_interaction(
     //                    egui_context.ctx_mut().wants_keyboard_input();
 
     // camera_mode.set_ui_interaction(ui_hovering || egui_hovering);
+}
+
+// System to handle user clicks on grid cells
+fn handle_grid_click(
+    mut commands: Commands,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    ground_plane_query: Query<&GlobalTransform, With<GroundPlane>>, // Assuming you have a GroundPlane entity
+    windows: Query<&Window>,
+    mut wfc_collapse_writer: EventWriter<UserTriggeredCollapse>,
+    // Add query for pickable blocks if you want to click existing blocks instead of empty grid cells
+    // pick_query: Query<(&PickSelection, &BlockInfo)>, 
+) {
+    if mouse_button_input.just_pressed(MouseButton::Left) {
+        let Ok(window) = windows.get_single() else { return };
+        let Some(cursor_pos) = window.cursor_position() else { return };
+        let Ok((camera, camera_transform)) = camera_query.get_single() else { return };
+        let Ok(ground_transform) = ground_plane_query.get_single() else { return }; // Get ground plane transform
+
+
+        // Raycast from camera to ground plane
+        if let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) {
+            if let Some(distance) = ray.intersect_plane(ground_transform.translation(), InfinitePlane3d::new(ground_transform.up())) {
+                let click_point = ray.get_point(distance);
+                
+                // Convert click_point to grid coordinates (assuming 1x1x1 grid cells)
+                let grid_x = click_point.x.round() as usize;
+                let grid_y = click_point.y.round() as usize;
+                let grid_z = click_point.z.round() as usize;
+                
+                info!("Grid cell clicked at: ({}, {}, {})", grid_x, grid_y, grid_z);
+                
+                // Send the UserTriggeredCollapse event
+                wfc_collapse_writer.send(UserTriggeredCollapse { position: (grid_x, grid_y, grid_z) });
+            }
+        }
+    }
 }
 

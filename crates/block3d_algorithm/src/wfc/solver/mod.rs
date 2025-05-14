@@ -177,6 +177,17 @@ impl<T: Block3DLike> WFCSolver<T> {
         }
     }
 
-
-   
+    /// Collapses a specific node and propagates constraints to its neighbors.
+    pub fn collapse_specific_node(&mut self, node_index: NodeIndex) -> Result<(), WFCError> {
+        // Collapse the specified node
+        match self.collapse_node(node_index) {
+            Ok(_) => {},
+            Err(e) => return Err(e), // Return error if initial collapse fails
+        }
+        
+        // Propagate constraints to neighbors (this is already handled in collapse_node)
+        // but we might want to do an additional broader check here if needed
+        
+        Ok(())
+    }
 }
