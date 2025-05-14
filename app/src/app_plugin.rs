@@ -1,4 +1,3 @@
-
 use crate::event::{CrayonInEvent, CrayonOutEvent};
 use crate::event_channel::GLOBAL_EVENT_CHANNEL;
 use crate::materials::button_material::ButtonMaterialPlugin;
@@ -18,14 +17,37 @@ use bevy_camera::MainCamera;
 use bevy_debug_grid::{DebugGridPlugin, Grid};
 use bevy_gaussian_splatting::GaussianCamera;
 use bevy_inspector_egui::bevy_egui::EguiContexts;
-
+use block3d_core::block::Block3DLike;
 use bevy_mod_reqwest::ReqwestPlugin;
 use bevy_polyline::PolylinePlugin;
 use bevy_wfc::{WFCPlugin, WFCSolveComplete, WFCSolveRequest};
 use block3d_core::block::lego_block::LegoBlock;
 use block3d_core::block::{Block3D, BlockKind};
+use block3d_core::Orientation;
+use block3d_core::face::Face;
+use block3d_core::connection::{OrientedInterface, ConnectorInterface};
 use std::collections::HashSet;
 use std::time::Duration;
+use std::collections::HashMap;
+
+// Component to store block information for debugging
+#[derive(Component)]
+struct BlockInfo {
+    kind: BlockKind,
+    position: (usize, usize, usize),
+    orientation: Orientation,
+    size: (u32, u32, u32),
+}
+
+impl BlockInfo {
+    fn new(kind: BlockKind, position: (usize, usize, usize), orientation: Orientation, size: (u32, u32, u32)) -> Self {
+        Self { kind, position, orientation, size }
+    }
+}
+
+// Component to identify text markers
+#[derive(Component)]
+struct BlockTypeMarker;
 
 const SHAPES_X_EXTENT: f32 = 14.0;
 const EXTRUSION_X_EXTENT: f32 = 16.0;
@@ -90,7 +112,7 @@ impl Plugin for AppPlugin {
             .add_systems(
                 Update,
                 (
-                    handle_wfc_results,
+                    handle_wfc_results.run_if(on_event::<WFCSolveComplete>),
                     CrayonInEvent::handle.run_if(on_event::<CrayonInEvent>),
                     CrayonOutEvent::handle.run_if(on_event::<CrayonOutEvent>),
                     check_ui_interaction,
@@ -152,35 +174,179 @@ impl AppPlugin {
     }
 }
 
-fn setup_wfc(commands: Commands, mut solve_requests: EventWriter<WFCSolveRequest>) {
-    // Create initial block set similar to your lego_wfc example
+fn setup_wfc(mut commands: Commands, mut solve_requests: EventWriter<WFCSolveRequest>) {
+    // Create initial block set with various block types and proper connection faces
     let mut block_set = HashSet::new();
 
+    // Create face with stud interface for top
+    let stud_face = Face::new(OrientedInterface {
+        interface: ConnectorInterface::Stud,
+        orientation: Orientation::O0,
+    });
+
+    // Create face with tube interface for bottom
+    let tube_face = Face::new(OrientedInterface {
+        interface: ConnectorInterface::Tube,
+        orientation: Orientation::O0,
+    });
+
+    // Add 1x1x1 blocks with proper connection faces
     block_set.insert(Block3D::Lego(LegoBlock::new(
         (1, 1, 1),
         BlockKind::Wall,
-        vec![],
+        vec![stud_face.clone(), tube_face.clone()],
     )));
     block_set.insert(Block3D::Lego(LegoBlock::new(
         (1, 1, 1),
         BlockKind::Floor,
-        vec![],
+        vec![stud_face.clone(), tube_face.clone()],
     )));
-    // ... add other blocks
+    block_set.insert(Block3D::Lego(LegoBlock::new(
+        (1, 1, 1),
+        BlockKind::Door,
+        vec![stud_face.clone(), tube_face.clone()],
+    )));
+    block_set.insert(Block3D::Lego(LegoBlock::new(
+        (1, 1, 1),
+        BlockKind::Window,
+        vec![stud_face.clone(), tube_face.clone()],
+    )));
+    
+    // Add a few 2x1x1 blocks for variety
+    block_set.insert(Block3D::Lego(LegoBlock::new(
+        (2, 1, 1),
+        BlockKind::Wall,
+        vec![stud_face.clone(), tube_face.clone()],
+    )));
+    block_set.insert(Block3D::Lego(LegoBlock::new(
+        (2, 1, 1),
+        BlockKind::Floor,
+        vec![stud_face.clone(), tube_face.clone()],
+    )));
 
+    // Use a 3x3x3 grid for a more interesting structure
     solve_requests.send(WFCSolveRequest {
-        dimensions: (2, 2, 1),
+        dimensions: (5, 5, 5),  // Increased depth for more complex structures
         block_set,
     });
+    
+    // FUTURE ENHANCEMENTS:
+    // 1. Update WFCSolveRequest to accept invariants like GravityInvariant
+    // 2. Add compatibility rules between blocks for proper LEGO connections
+    // 3. Implement more sophisticated heuristics for block selection
+    // 4. Add support for different block shapes and connection types
+    // 5. Include constraints for structural integrity
 }
 
-fn handle_wfc_results(mut complete_events: EventReader<WFCSolveComplete>, commands: Commands) {
+fn handle_wfc_results(mut complete_events: EventReader<WFCSolveComplete>, mut commands: Commands, 
+    mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
     for event in complete_events.read() {
         match &event.result {
             Ok(graph) => {
-                // Handle successful generation
-                info!("WFC solution found!, {:?}", graph);
-                // Spawn entities based on the graph...
+                // Create a summary of block types
+                let mut block_type_counts = HashMap::new();
+                
+                for node_idx in graph.node_indices() {
+                    if let Some(node_state) = graph.node_weight(node_idx) {
+                        let block_kind = node_state.block.block_kind();
+                        *block_type_counts.entry(block_kind).or_insert(0) += 1;
+                    }
+                }
+                
+                // Log summary and detailed info at different log levels
+                info!("WFC solution found!");
+                info!("---------------------");
+                info!("Total nodes: {}", graph.node_count());
+                
+                for (block_kind, count) in &block_type_counts {
+                    info!("  - {}: {} blocks", block_kind, count);
+                }
+                
+                // Detailed graph info at debug level instead of info
+                info!("\nDetailed graph structure:\n{}", graph.pretty_print());
+                
+                // Get the dimensions of the WFC solution
+                // Since we don't have direct access to the dimensions that were used to create the grid,
+                // we'll calculate an approximate grid size based on the number of nodes
+                let node_count = graph.node_count();
+                let approx_size = (node_count as f32).cbrt().ceil() as usize;
+                let grid_size = approx_size;
+                
+                // For each node in the graph, create a visual representation
+                for node_idx in graph.node_indices() {
+                    if let Some(node_state) = graph.node_weight(node_idx) {
+                        // Get the actual position stored in the node state
+                        let (x, y, z) = node_state.position;
+                        
+                        // Get block information
+                        let block = &node_state.block;
+                        let orientation = node_state.orientation;
+                        let block_kind = block.block_kind();
+                        let size = block.size();
+                        
+                        // Create a position vector, spacing blocks by 1 unit
+                        let position = Vec3::new(x as f32, y as f32, z as f32);
+                        
+                        // Create material based on block kind with higher transparency
+                        let material = materials.add(match block_kind {
+                            BlockKind::Wall => StandardMaterial {
+                                base_color: Color::rgba(0.8, 0.8, 0.8, 0.6), // Light gray for walls with transparency
+                                alpha_mode: AlphaMode::Blend,
+                                ..default()
+                            },
+                            BlockKind::Floor => StandardMaterial {
+                                base_color: Color::rgba(0.6, 0.5, 0.4, 0.6), // Brown for floors with transparency
+                                alpha_mode: AlphaMode::Blend,
+                                ..default()
+                            },
+                            BlockKind::Door => StandardMaterial {
+                                base_color: Color::rgba(0.6, 0.3, 0.2, 0.6), // Brown for doors with transparency
+                                alpha_mode: AlphaMode::Blend,
+                                ..default()
+                            },
+                            BlockKind::Window => StandardMaterial {
+                                base_color: Color::rgba(0.3, 0.7, 0.9, 0.6), // Blue for windows with transparency
+                                alpha_mode: AlphaMode::Blend,
+                                ..default()
+                            },
+                            _ => StandardMaterial {
+                                base_color: Color::rgba(1.0, 1.0, 1.0, 0.6), // White for other types with transparency
+                                alpha_mode: AlphaMode::Blend,
+                                ..default()
+                            },
+                        });
+                        
+                        // Determine the size of the block
+                        let (width, height, depth) = size;
+                        let block_size = Vec3::new(width as f32, height as f32, depth as f32);
+                        
+                        // Create a cuboid mesh based on the block's size
+                        let mesh = meshes.add(Cuboid::new(
+                            block_size.x, 
+                            block_size.y, 
+                            block_size.z
+                        ));
+                        
+                        // Convert orientation to rotation
+                        let rotation = match orientation {
+                            Orientation::O0 => Quat::from_rotation_y(0.0),
+                            Orientation::O90 => Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+                            Orientation::O180 => Quat::from_rotation_y(std::f32::consts::PI),
+                            Orientation::O270 => Quat::from_rotation_y(3.0 * std::f32::consts::FRAC_PI_2),
+                        };
+                        
+                        // Spawn entity with mesh, material, and block info component
+                        let block_entity = commands.spawn((
+                            Mesh3d(mesh),
+                            MeshMaterial3d(material),
+                            Transform::from_translation(position)
+                                .with_rotation(rotation),
+                            GlobalTransform::default(),
+                            // Add component to store block info for debugging
+                            BlockInfo::new(block_kind, (x, y, z), orientation, size),
+                        )).id();
+                    }
+                }
             }
             Err(e) => {
                 error!("WFC generation failed: {}", e);
@@ -279,5 +445,4 @@ fn check_ui_interaction(
 
     // camera_mode.set_ui_interaction(ui_hovering || egui_hovering);
 }
-
 

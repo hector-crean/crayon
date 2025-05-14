@@ -113,12 +113,16 @@ impl<T: Block3DLike> WFCSolver<T> {
             return Ok(node_state.clone());
         }
 
+        // Get the current position from the node
+        let current_position = node_state.position;
+
         // Get valid states based on invariants
         let valid_states: Vec<NodeState<T>> = self.block_set
             .iter()
             .flat_map(|block| {
                 Orientation::iter().map(move |orientation| {
-                    NodeState::new(block.clone(), orientation)
+                    // Use with_position to preserve the node's position
+                    NodeState::with_position(block.clone(), orientation, current_position)
                 })
             })
             .filter(|state| {

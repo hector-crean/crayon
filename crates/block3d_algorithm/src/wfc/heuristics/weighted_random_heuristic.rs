@@ -1,6 +1,6 @@
 use std::collections::HashSet;
-use rand::Rng;
-use block3d_core::block::Block3DLike;
+use rand::{Rng, distributions::WeightedIndex, prelude::Distribution};
+use block3d_core::block::{Block3DLike, BlockKind};
 use petgraph::graph::NodeIndex;
 use crate::wfc::solver::state::NodeState;
 use super::Heuristic;
@@ -50,10 +50,32 @@ impl<T: Block3DLike> Heuristic<T> for WeightedRandomHeuristic {
             return None;
         }
 
-        // For now, implementing uniform random selection
-        // TODO: Add proper weighting based on block frequencies or other criteria
+        // Create a weighted selection based on block preferences
         let mut rng = rand::thread_rng();
-        valid_states.get(rng.gen_range(0..valid_states.len()))
-            .cloned()
+        
+        // Assign weights to different block types
+        let weights: Vec<f32> = valid_states.iter().map(|state| {
+            match state.block.block_kind() {
+                // Prioritize structural elements
+                BlockKind::Wall => 10.0,
+                BlockKind::Floor => 8.0,
+                
+                // Special elements are less common
+                BlockKind::Door => 3.0,  
+                BlockKind::Window => 3.0,
+                
+                // Other block types
+                _ => 5.0,
+            }
+        }).collect();
+        
+        // Create a weighted distribution
+        if let Ok(dist) = WeightedIndex::new(&weights) {
+            let selected_idx = dist.sample(&mut rng);
+            return valid_states.get(selected_idx).cloned();
+        }
+        
+        // Fallback to simple random selection if weighting fails
+        valid_states.get(rng.gen_range(0..valid_states.len())).cloned()
     }
 }
