@@ -1,0 +1,16 @@
+
+[package]
+name = "bevy-wgsl"
+description = "Bevy WESL shaders"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+wesl = { workspace = true }
+
+
+[build-dependencies]
+wesl = { workspace = true, features = ["package"] }
+
+

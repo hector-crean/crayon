@@ -1,34 +1,86 @@
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
-use std::collections::HashSet;
+use bevy_crayon_materials::wireframe::VoidMaterial;
 use block3d_algorithm::{
-    wfc::heuristics::weighted_random_heuristic::WeightedRandomHeuristic, 
-    wfc::solver::WFCSolver, 
-    wfc::graph::WFCGraph
+    wfc::graph::WFCGraph, wfc::heuristics::weighted_random_heuristic::WeightedRandomHeuristic,
+    wfc::solver::WFCSolver,
 };
-use block3d_core::block::Block3D;
+use block3d_core::block::Block3DLike;
+use block3d_core::{
+    block::{lego_block::LegoBlock, Block3D, BlockKind},
+    connection::{ConnectorInterface, OrientedInterface},
+    face::Face,
+    Orientation,
+};
 use crossbeam_channel::{bounded, Receiver};
+use std::collections::{HashMap, HashSet};
 
-#[derive(Event)]
-pub struct WFCSolveRequest {
-    pub dimensions: (usize, usize, usize),
-    pub block_set: HashSet<Block3D>,
+// Component to store block information for debugging
+#[derive(Component)]
+struct BlockInfo {
+    kind: BlockKind,
+    position: (usize, usize, usize),
+    orientation: Orientation,
+    size: (u32, u32, u32),
 }
 
-// New event for user-triggered collapse
-#[derive(Event)]
-pub struct UserTriggeredCollapse {
-    pub position: (usize, usize, usize), // The (x, y, z) position of the node to collapse
+impl BlockInfo {
+    fn new(kind: BlockKind, position: (usize, usize, usize), orientation: Orientation, size: (u32, u32, u32)) -> Self {
+        Self { kind, position, orientation, size }
+    }
 }
 
-#[derive(Event)]
-pub struct WFCSolveComplete {
-    pub result: Result<WFCGraph<Block3D>, String>,
-    // Optional: Add information about which nodes were changed, if needed for partial updates
-    // pub changed_nodes: Option<Vec<NodeIndex>>
+// Component to identify text markers
+#[derive(Component)]
+struct BlockTypeMarker;
+
+// New enum to handle different material types
+#[derive(Component)]
+enum BlockMaterial {
+    Standard(Handle<StandardMaterial>),
+    Void(Handle<VoidMaterial>),
+    // Add other material types as needed
 }
 
-pub struct WFCPlugin;
+fn create_block_material(
+    block_kind: BlockKind,
+    standard_materials: &mut Assets<StandardMaterial>,
+    void_materials: &mut Assets<VoidMaterial>,
+) -> BlockMaterial {
+    match block_kind {
+        BlockKind::Void => BlockMaterial::Void(
+            void_materials.add(VoidMaterial {
+                color: LinearRgba::from(Color::rgba(0.2, 0.8, 1.0, 0.5)),
+                grid_thickness: 0.02,
+                grid_spacing: 0.2,
+            })
+        ),
+        kind => BlockMaterial::Standard(
+            standard_materials.add(StandardMaterial {
+                base_color: get_block_color(kind),
+                alpha_mode: AlphaMode::Opaque,
+                ..default()
+            })
+        ),
+    }
+}
+
+// Helper function to get block colors
+fn get_block_color(kind: BlockKind) -> Color {
+    match kind {
+        BlockKind::Wall => Color::rgb(0.75, 0.75, 0.75),
+        BlockKind::Floor => Color::rgb(0.55, 0.27, 0.07),
+        BlockKind::Window => Color::rgb(0.75, 0.75, 0.75),
+        BlockKind::Door => Color::rgb(0.75, 0.75, 0.75),
+        BlockKind::Ceiling => Color::rgb(0.75, 0.75, 0.75),
+        _ => Color::rgb(0.75, 0.75, 0.75),
+    }
+}
+
+const SHAPES_X_EXTENT: f32 = 14.0;
+const EXTRUSION_X_EXTENT: f32 = 16.0;
+const Z_EXTENT: f32 = 5.0;
+
 
 #[derive(Resource, Deref)]
 struct WFCReceiver(Receiver<WFCSolveComplete>);
@@ -41,126 +93,367 @@ struct WFCSender(crossbeam_channel::Sender<WFCSolveComplete>);
 pub struct CurrentWFCGraph(pub Option<WFCGraph<Block3D>>);
 
 // Resource to store the block set used for WFC
-#[derive(Resource, Default, Clone)]
+#[derive(Resource, Clone)]
 pub struct WFCBlockSet(pub HashSet<Block3D>);
+
+impl Default for WFCBlockSet {
+    fn default() -> Self {
+        Self(WFCPlugin::default_lego_set())
+    }
+}
+
+#[derive(Event)]
+pub enum WFCSolveRequest {
+    // Initialize the grid with dimensions and possible blocks
+    Initialize {
+        dimensions: (usize, usize, usize),
+        block_set: HashSet<Block3D>,
+    },
+
+    // Fix a specific block at a position
+    PlaceBlock {
+        position: (usize, usize, usize),
+        block: Block3D, // The specific block to place
+    },
+
+    // Get possible blocks for a position (useful for hover preview)
+    GetPossibleBlocks {
+        position: (usize, usize, usize),
+    },
+
+    // Collapse a specific position using WFC's heuristics
+    CollapseNode {
+        position: (usize, usize, usize),
+    },
+
+    // Clear a previously placed block
+    ClearNode {
+        position: (usize, usize, usize),
+    },
+
+    // Optional: Solve a specific region
+    SolveRegion {
+        min_bound: (usize, usize, usize),
+        max_bound: (usize, usize, usize),
+    },
+}
+
+#[derive(Event)]
+pub enum WFCSolveComplete {
+    // For Initialize and general solving operations
+    GraphUpdated {
+        result: Result<WFCGraph<Block3D>, String>,
+    },
+
+    // For GetPossibleBlocks queries
+    PossibleBlocks {
+        position: (usize, usize, usize),
+        blocks: Result<Vec<Block3D>, String>,
+    },
+}
+
+#[derive(Event)]
+pub struct UpdateBlockSet {
+    pub block_set: HashSet<Block3D>,
+}
+
+pub struct WFCPlugin {
+    initial_block_set: HashSet<Block3D>,
+}
+
+impl Default for WFCPlugin {
+    fn default() -> Self {
+        Self { initial_block_set: Self::default_lego_set() }
+    }
+}
+
+impl WFCPlugin {
+    pub fn new(initial_block_set: HashSet<Block3D>) -> Self {
+        Self { initial_block_set }
+    }
+    pub fn default_lego_set() -> HashSet<Block3D> {
+        let mut block_set = HashSet::new();
+
+        // Create standard faces
+        let stud_face = Face::new(OrientedInterface {
+            interface: ConnectorInterface::Stud,
+            orientation: Orientation::O0,
+        });
+        let tube_face = Face::new(OrientedInterface {
+            interface: ConnectorInterface::Tube,
+            orientation: Orientation::O0,
+        });
+
+        // Standard 1x1x1 blocks
+        for kind in [
+            BlockKind::Wall,
+            BlockKind::Floor,
+            BlockKind::Door,
+            BlockKind::Window,
+        ] {
+            block_set.insert(Block3D::Lego(LegoBlock::new(
+                (1, 1, 1),
+                kind,
+                vec![stud_face.clone(), tube_face.clone()],
+            )));
+        }
+
+        // 2x1x1 blocks
+        for kind in [BlockKind::Wall, BlockKind::Floor] {
+            block_set.insert(Block3D::Lego(LegoBlock::new(
+                (2, 1, 1),
+                kind,
+                vec![stud_face.clone(), tube_face.clone()],
+            )));
+        }
+
+        block_set
+    }
+
+    fn initialise_wfc(
+        block_set: Res<WFCBlockSet>,
+        mut solve_requests: EventWriter<WFCSolveRequest>,
+    ) {
+        info!("Initialising WFC");
+        // Use a 3x3x3 grid for a more interesting structure
+        solve_requests.send(WFCSolveRequest::Initialize {
+            dimensions: (2, 2, 2), // Increased depth for more complex structures
+            block_set: block_set.0.clone(),
+        });
+    }
+
+    fn handle_block_set_updates(
+        mut update_events: EventReader<UpdateBlockSet>,
+        mut block_set: ResMut<WFCBlockSet>,
+        current_graph: Res<CurrentWFCGraph>,
+    ) {
+        for event in update_events.read() {
+            // Optionally validate the new block set
+            if let Some(graph) = &current_graph.0 {
+                // Maybe check if the new block set is compatible with the current graph state
+                // Or trigger a graph reset if it's not compatible
+                info!("Updating block set while graph exists - this may require reinitializing the graph");
+            }
+
+            block_set.0 = event.block_set.clone();
+        }
+    }
+
+    fn handle_wfc_requests(
+        mut solve_requests: EventReader<WFCSolveRequest>,
+        sender: Res<WFCSender>,
+        mut wfc_block_set: ResMut<WFCBlockSet>, // Access the block set resource
+    ) {
+        let thread_pool = AsyncComputeTaskPool::get();
+
+        for request in solve_requests.read() {
+            match request {
+                WFCSolveRequest::Initialize {
+                    dimensions,
+                    block_set,
+                } => {
+                    wfc_block_set.0 = block_set.clone(); // Store the block set
+                    let block_set_clone = block_set.clone(); // Clone for the async task
+                    let dimensions = dimensions.clone();
+                    let tx = sender.clone();
+
+                    thread_pool
+                        .spawn(async move {
+                            let graph = WFCGraph::<Block3D>::grid_graph(dimensions);
+                            let heuristic = Box::new(WeightedRandomHeuristic);
+                            let invariants = vec![];
+
+                            let mut solver = WFCSolver::new(
+                                graph,
+                                block_set_clone, // Use the cloned block set
+                                invariants,
+                                heuristic,
+                                vec![],
+                            );
+
+                            let result = solver
+                                .solve()
+                                .map(|_| solver.graph)
+                                .map_err(|e| e.to_string());
+
+                            tx.send(WFCSolveComplete::GraphUpdated { result }).ok();
+                        })
+                        .detach();
+                }
+                WFCSolveRequest::PlaceBlock { position, block } => {}
+                WFCSolveRequest::GetPossibleBlocks { position } => {}
+                WFCSolveRequest::CollapseNode { position } => {}
+                WFCSolveRequest::ClearNode { position } => {}
+                WFCSolveRequest::SolveRegion {
+                    min_bound,
+                    max_bound,
+                } => {}
+            }
+        }
+    }
+
+    // Modify process_wfc_results to update the CurrentWFCGraph resource
+    fn forward_wfc_solve_complete(
+        receiver: Res<WFCReceiver>,
+        mut solve_complete: EventWriter<WFCSolveComplete>,
+        mut current_graph: ResMut<CurrentWFCGraph>, // Access the graph resource
+    ) {
+        for event_data in receiver.try_iter() {
+            match &event_data {
+                WFCSolveComplete::GraphUpdated { result } => match result {
+                    Ok(graph) => {
+                        current_graph.0 = Some(graph.clone());
+
+                    }
+                    Err(e) => {
+                        error!("Error updating WFC graph: {}", e);
+                    }
+                },
+                WFCSolveComplete::PossibleBlocks { position, blocks } => {
+                    // Handle PossibleBlocks event
+                }
+            }
+            solve_complete.send(event_data);
+        }
+    }
+
+    // New system just for logging and debugging
+    fn log_wfc_results(mut complete_events: EventReader<WFCSolveComplete>) {
+        for event in complete_events.read() {
+            match event {
+                WFCSolveComplete::GraphUpdated { result } => match result {
+                    Ok(graph) => {
+                        // Create a summary of block types
+                        let mut block_type_counts = HashMap::new();
+
+                        for node_idx in graph.node_indices() {
+                            if let Some(node_state) = graph.node_weight(node_idx) {
+                                let block_kind = node_state.block.block_kind();
+                                *block_type_counts.entry(block_kind).or_insert(0) += 1;
+                            }
+                        }
+
+                        // Log summary and detailed info
+                        info!("WFC solution found!");
+                        info!("---------------------");
+                        info!("Total nodes: {}", graph.node_count());
+
+                        for (block_kind, count) in &block_type_counts {
+                            info!("  - {}: {} blocks", block_kind, count);
+                        }
+
+                        // Detailed graph info
+                        info!("\nDetailed graph structure:\n{}", graph.pretty_print());
+                    }
+                    Err(e) => {
+                        error!("WFC generation failed: {}", e);
+                    }
+                },
+                WFCSolveComplete::PossibleBlocks { position, blocks } => {
+                    info!("Possible blocks at position {:?}: {:?}", position, blocks);
+                }
+            }
+        }
+    }
+
+    // Separate system for geometry management
+    fn update_geometry(
+        mut complete_events: EventReader<WFCSolveComplete>,
+        mut commands: Commands,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut standard_materials: ResMut<Assets<StandardMaterial>>,
+        mut void_materials: ResMut<Assets<VoidMaterial>>,
+    ) {
+        for event in complete_events.read() {
+            match event {
+                WFCSolveComplete::GraphUpdated { result } => match result {
+                    Ok(graph) => {
+                        // For each node in the graph, create/update visual representation
+                        for node_idx in graph.node_indices() {
+                            if let Some(node_state) = graph.node_weight(node_idx) {
+                                let (x, y, z) = node_state.position;
+                                let block = &node_state.block;
+                                let orientation = node_state.orientation;
+                                let block_kind = block.block_kind();
+                                let size = block.size();
+
+                                let position = Vec3::new(x as f32, y as f32, z as f32);
+
+                                let material = create_block_material(block_kind, &mut standard_materials, &mut void_materials);
+
+                                let (width, height, depth) = size;
+                                let block_size = Vec3::new(width as f32, height as f32, depth as f32);
+                                let mesh = meshes.add(Cuboid::new(block_size.x, block_size.y, block_size.z));
+
+                                let rotation = match orientation {
+                                    Orientation::O0 => Quat::from_rotation_y(0.0),
+                                    Orientation::O90 => Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+                                    Orientation::O180 => Quat::from_rotation_y(std::f32::consts::PI),
+                                    Orientation::O270 => Quat::from_rotation_y(3.0 * std::f32::consts::FRAC_PI_2),
+                                };
+
+                                let entity = commands.spawn((
+                                    Mesh3d(mesh),
+                                    Transform::from_translation(position).with_rotation(rotation),
+                                    GlobalTransform::default(),
+                                    BlockInfo::new(block_kind, (x, y, z), orientation, size),
+                                )).id();
+
+                                match material {
+                                    BlockMaterial::Standard(material) => {
+                                        commands.entity(entity).insert(MeshMaterial3d(material));
+                                    }
+                                    BlockMaterial::Void(material) => {
+                                        commands.entity(entity).insert(MeshMaterial3d(material));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {} // Geometry errors already logged in log_wfc_results
+                },
+                WFCSolveComplete::PossibleBlocks { .. } => {
+                    // Handle visualization of possible blocks if needed
+                }
+            }
+        }
+    }
+}
 
 impl Plugin for WFCPlugin {
     fn build(&self, app: &mut App) {
         let (tx, rx) = bounded(1);
-        
-        app
-            .add_event::<WFCSolveRequest>()
-            .add_event::<UserTriggeredCollapse>() // Add the new event
+
+        app.add_event::<WFCSolveRequest>()
             .add_event::<WFCSolveComplete>()
+            .add_event::<UpdateBlockSet>()
             .insert_resource(WFCReceiver(rx))
             .insert_resource(WFCSender(tx))
-            .init_resource::<CurrentWFCGraph>() // Initialize the new resource
-            .init_resource::<WFCBlockSet>()      // Initialize the block set resource
-            .add_systems(Update, (handle_wfc_requests, handle_user_triggered_collapse, process_wfc_results_and_update_graph)); // Renamed process_wfc_results
-    }
-}
+            .init_resource::<CurrentWFCGraph>()
+            .init_resource::<WFCBlockSet>()
+            .add_systems(PostStartup, Self::initialise_wfc)
+            .add_systems(
+                Update,
+                (
+                    // First, handle any block set updates
+                    Self::handle_block_set_updates
+                        .run_if(on_event::<UpdateBlockSet>),
 
-fn handle_wfc_requests(
-    mut solve_requests: EventReader<WFCSolveRequest>,
-    sender: Res<WFCSender>,
-    mut wfc_block_set: ResMut<WFCBlockSet>, // Access the block set resource
-) {
-    let thread_pool = AsyncComputeTaskPool::get();
+                    // Then handle any new WFC requests
+                    Self::handle_wfc_requests,
 
-    for request in solve_requests.read() {
-        wfc_block_set.0 = request.block_set.clone(); // Store the block set
-        let block_set_clone = request.block_set.clone(); // Clone for the async task
-        let dimensions = request.dimensions;
-        let tx = sender.clone();
+                    // Process results and update graph state
+                    Self::forward_wfc_solve_complete,
 
-        thread_pool.spawn(async move {
-            let graph = WFCGraph::<Block3D>::grid_graph(dimensions);
-            let heuristic = Box::new(WeightedRandomHeuristic);
-            let invariants = vec![];
-            
-            let mut solver = WFCSolver::new(
-                graph,
-                block_set_clone, // Use the cloned block set
-                invariants,
-                heuristic,
-                vec![],
+                    // Finally, handle visualization and logging
+                    (
+                        Self::log_wfc_results.run_if(on_event::<WFCSolveComplete>),
+                        Self::update_geometry.run_if(resource_exists_and_changed::<CurrentWFCGraph>),
+                    )
+                        .after(Self::forward_wfc_solve_complete)
+                        ,
+                )
+                    .chain()
             );
-
-            let result = solver.solve()
-                .map(|_| solver.graph)
-                .map_err(|e| e.to_string());
-
-            tx.send(WFCSolveComplete { result }).ok();
-        }).detach();
-    }
-}
-
-// System to handle user-triggered collapse events
-fn handle_user_triggered_collapse(
-    mut collapse_events: EventReader<UserTriggeredCollapse>,
-    sender: Res<WFCSender>,
-    current_graph: Res<CurrentWFCGraph>,
-    block_set: Res<WFCBlockSet>,
-) {
-    let thread_pool = AsyncComputeTaskPool::get();
-
-    for event in collapse_events.read() {
-        let position_to_collapse = event.position;
-        let tx = sender.clone();
-        
-        // Clone the current graph and block_set for the async task
-        let graph_clone = current_graph.0.clone(); 
-        let block_set_clone = block_set.0.clone();
-
-        thread_pool.spawn(async move {
-            if let Some(current_graph_instance) = graph_clone {
-                let heuristic = Box::new(WeightedRandomHeuristic);
-                let invariants = vec![];
-                
-                let mut solver = WFCSolver::new(
-                    current_graph_instance, // Use the current graph state
-                    block_set_clone,      // Use the stored block set
-                    invariants,
-                    heuristic,
-                    vec![],
-                );
-
-                let node_to_collapse = solver.graph.node_indices().find(|&idx| {
-                    solver.graph.node_weight(idx).map_or(false, |state| state.position == position_to_collapse)
-                });
-
-                if let Some(node_idx) = node_to_collapse {
-                    let result = solver.collapse_specific_node(node_idx)
-                        .map(|_| solver.graph) 
-                        .map_err(|e| e.to_string());
-                    tx.send(WFCSolveComplete { result }).ok();
-                } else {
-                    let _ = tx.send(WFCSolveComplete { result: Err("Node at position not found".to_string()) });
-                }
-            } else {
-                // Handle case where there's no current graph (e.g., initial state)
-                let _ = tx.send(WFCSolveComplete { result: Err("No current WFC graph available".to_string()) });
-            }
-        }).detach();
-    }
-}
-
-// Modify process_wfc_results to update the CurrentWFCGraph resource
-fn process_wfc_results_and_update_graph(
-    receiver: Res<WFCReceiver>,
-    mut solve_complete: EventWriter<WFCSolveComplete>,
-    mut current_graph: ResMut<CurrentWFCGraph>, // Access the graph resource
-) {
-    for event_data in receiver.try_iter() {
-        match &event_data.result {
-            Ok(graph_result) => {
-                current_graph.0 = Some(graph_result.clone()); // Update the resource
-            }
-            Err(_) => {
-                // Optionally clear the graph or handle the error
-                current_graph.0 = None;
-            }
-        }
-        solve_complete.send(event_data); // Forward the event
     }
 }

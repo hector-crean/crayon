@@ -146,10 +146,58 @@ To use the WFC solver, you typically:
 *   **Compatibility Rules**: System for defining adjacency constraints.
 *   **Targeted Collapse**: `collapse_specific_node` allows for interactive WFC.
 *   **Rudimentary Backtracking**: The solver includes a basic backtracking mechanism in `solve()`.
+*   **Connection-Based Approach**: Handles different sized blocks through connection points rather than grid cells.
+*   **Spatial Partitioning**: Uses a spatial grid for efficient collision detection between blocks.
 
 Potential areas for future enhancements:
 *   More sophisticated heuristics (e.g., considering connection points, structural stability).
 *   Advanced backtracking strategies.
 *   More complex and robust invariants and compatibility rules (e.g., detailed face/connector matching).
-*   Support for non-uniform block sizes during propagation.
 *   Performance optimizations for larger grids.
+
+## Connection-Based Block Placement
+
+To handle blocks of different sizes, we use a connection-based approach rather than a strict grid-based method. This approach is particularly suitable for LEGO-style blocks where connections occur at specific points (studs, tubes) rather than entire faces.
+
+### Key Components
+
+1. **Connection Points**:
+   - Each block defines connection points in its local space
+   - Each connection has:
+     - An interface type (stud, tube, etc.)
+     - A position offset from the block's origin
+     - An orientation
+     - Reference to connected blocks
+
+2. **Spatial Awareness**:
+   - A spatial grid accelerates collision detection
+   - Blocks register their volume in the grid
+   - Quick filtering of potential collisions
+
+3. **Connection Process**:
+   - When placing a block:
+     1. Find compatible connections on existing blocks (e.g., stud→tube)
+     2. Position the new block based on connection alignment
+     3. Verify no collisions with other placed blocks
+     4. Establish bidirectional connection references
+
+### Benefits
+
+- Naturally handles blocks of different sizes
+- Creates structurally sound arrangements
+- Mimics real building block behavior
+- Avoids grid alignment issues
+- Allows precise positioning based on connection geometry
+
+```mermaid
+graph TD
+    A[New Block] --> B{Find Compatible<br/>Connection Points}
+    B -->|Found| C[Check for Collisions]
+    C -->|No Collisions| D[Establish Connections]
+    D --> E[Update Spatial Grid]
+    E --> F[Propagate Constraints]
+    B -->|None Found| G[Reject Placement]
+    C -->|Has Collisions| G
+```
+
+This approach ensures that blocks can only be placed where they physically connect to the existing structure while properly handling their actual geometric volumes.

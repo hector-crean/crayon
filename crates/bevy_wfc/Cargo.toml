@@ -10,3 +10,4 @@ block3d_algorithm = { workspace = true }
 block3d_core = { workspace = true }
 bevy = { workspace = true }
 crossbeam-channel = { workspace = true }
+bevy_crayon_materials = { workspace = true }

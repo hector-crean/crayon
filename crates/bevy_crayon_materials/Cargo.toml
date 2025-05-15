@@ -1,0 +1,9 @@
+[package]
+name = "bevy_crayon_materials"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true }
