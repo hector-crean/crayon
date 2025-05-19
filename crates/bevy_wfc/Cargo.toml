@@ -11,3 +11,4 @@ block3d_core = { workspace = true }
 bevy = { workspace = true }
 crossbeam-channel = { workspace = true }
 bevy_crayon_materials = { workspace = true }
+bevy_mod_outline = { workspace = true }

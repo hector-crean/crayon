@@ -1,10 +1,12 @@
 pub mod compatibility;
 pub mod error;
 pub mod state;
+pub mod spatial_grid;
 
 use block3d_core::block::Block3DLike;
 use block3d_core::Orientation;
 use petgraph::graph::NodeIndex;
+use spatial_grid::SpatialGrid;
 use std::collections::{HashMap, HashSet, BTreeMap};
 
 use error::WFCError;
@@ -20,78 +22,6 @@ use crate::wfc::solver::compatibility::CompatibilityTable;
 use fixedbitset::FixedBitSet;
 use strum::IntoEnumIterator;
 
-/// Spatial grid for faster collision detection
-struct SpatialGrid {
-    cells: HashMap<(i32, i32, i32), Vec<NodeIndex>>,
-    cell_size: f32,
-}
-
-impl SpatialGrid {
-    fn new(cell_size: f32) -> Self {
-        Self {
-            cells: HashMap::new(),
-            cell_size,
-        }
-    }
-    
-    fn grid_coords(&self, position: (f32, f32, f32)) -> (i32, i32, i32) {
-        (
-            (position.0 / self.cell_size).floor() as i32,
-            (position.1 / self.cell_size).floor() as i32,
-            (position.2 / self.cell_size).floor() as i32,
-        )
-    }
-    
-    fn add_node(&mut self, node_idx: NodeIndex, position: (f32, f32, f32), size: (f32, f32, f32)) {
-        // Add to all cells the node overlaps
-        let min_cell = self.grid_coords(position);
-        let max_cell = self.grid_coords((
-            position.0 + size.0,
-            position.1 + size.1,
-            position.2 + size.2,
-        ));
-        
-        for x in min_cell.0..=max_cell.0 {
-            for y in min_cell.1..=max_cell.1 {
-                for z in min_cell.2..=max_cell.2 {
-                    self.cells.entry((x, y, z)).or_insert_with(Vec::new).push(node_idx);
-                }
-            }
-        }
-    }
-    
-    fn potential_collisions(&self, position: (f32, f32, f32), size: (f32, f32, f32)) -> Vec<NodeIndex> {
-        let mut result = HashSet::new();
-        
-        let min_cell = self.grid_coords(position);
-        let max_cell = self.grid_coords((
-            position.0 + size.0,
-            position.1 + size.1,
-            position.2 + size.2,
-        ));
-        
-        for x in min_cell.0..=max_cell.0 {
-            for y in min_cell.1..=max_cell.1 {
-                for z in min_cell.2..=max_cell.2 {
-                    if let Some(nodes) = self.cells.get(&(x, y, z)) {
-                        result.extend(nodes.iter());
-                    }
-                }
-            }
-        }
-        
-        result.into_iter().collect()
-    }
-    
-    fn remove_node(&mut self, node_idx: NodeIndex) {
-        for nodes in self.cells.values_mut() {
-            nodes.retain(|&n| n != node_idx);
-        }
-        
-        // Clean up empty cells
-        self.cells.retain(|_, nodes| !nodes.is_empty());
-    }
-}
 
 pub struct WFCSolver<T: Block3DLike> {
     pub graph: WFCGraph<T>,
@@ -396,18 +326,7 @@ impl<T: Block3DLike> WFCSolver<T> {
     }
 
     /// Collapses a specific node and propagates constraints to its neighbors.
-    pub fn collapse_specific_node(&mut self, node_index: NodeIndex) -> Result<(), WFCError> {
-        // Collapse the specified node
-        match self.collapse_node(node_index) {
-            Ok(_) => {},
-            Err(e) => return Err(e), // Return error if initial collapse fails
-        }
-        
-        // Propagate constraints to neighbors (this is already handled in collapse_node)
-        // but we might want to do an additional broader check here if needed
-        
-        Ok(())
-    }
+  
     
     /// Find a node at the given grid position
     pub fn find_node_at_position(&self, position: (usize, usize, usize)) -> Option<NodeIndex> {
@@ -419,5 +338,30 @@ impl<T: Block3DLike> WFCSolver<T> {
             }
         }
         None
+    }
+
+    pub fn collapse_node_at_position(&mut self, position: (usize, usize, usize)) -> Result<(), WFCError> {
+
+        let node_index = self.find_node_at_position(position)
+            .ok_or(WFCError::NodeNotFoundAtPosition(position))?;
+
+          // Collapse the specified node
+          match self.collapse_node(node_index) {
+            Ok(_) => {},
+            Err(e) => return Err(e), // Return error if initial collapse fails
+        }
+        
+        Ok(())
+    }
+    pub fn set_node_at_position(&mut self, position: (usize, usize, usize), block: T) -> Result<(), WFCError> {
+        let node_index = self.find_node_at_position(position)
+            .ok_or(WFCError::NodeNotFoundAtPosition(position))?;
+
+        let node_state = self.graph.node_weight_mut(node_index)
+            .ok_or(WFCError::NodeNotFound(node_index))?;
+
+        node_state.block = block;
+
+        Ok(())
     }
 }

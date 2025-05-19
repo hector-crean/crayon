@@ -20,9 +20,18 @@ bevy_polyline = { path = "crates/bevy_polyline" }
 block3d_core = { path = "crates/block3d_core" }
 block3d_algorithm = { path = "crates/block3d_algorithm" }
 bevy_debug_grid = { path = "crates/bevy_debug_grid" }
+bevy_crayon_materials = { path = "crates/bevy_crayon_materials" }
 bevy_wfc = { path = "crates/bevy_wfc" }
 ts-rs = { version = "10.1.0", features = ["serde-compat", "bytes",  "chrono", "serde_json", "serde-json-impl", "tokio", "url", "uuid", "uuid-impl", "chrono-impl"] }
 bevy_mod_outline = "0.9"
+
+
+# wgsl-parse = { version = "0.1.2", features = ["condcomp", "generics", "imports", "serde", "wesl"] }
+wesl = { version = "0.1.2", features = ["package", "generics", "serde"] }
+
+bevy_wgsl = { path = "crates/bevy-wgsl" }
+
+
 
 surrealdb = { version = "2.0.4", features = [ "kv-mem"] }
 

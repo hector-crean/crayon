@@ -1,45 +1,39 @@
-#import bevy_pbr::mesh_view_bindings
-#import bevy_pbr::mesh_bindings
+#import bevy_pbr::forward_io::VertexOutput
 
-@group(1) @binding(0)
-var<uniform> material: {
-    color: vec4<f32>,
-    grid_thickness: f32, 
-    grid_spacing: f32,
-};
-
-struct Vertex {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-};
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) world_position: vec3<f32>,
-    @location(1) world_normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-};
-
-@vertex
-fn vertex(vertex: Vertex) -> VertexOutput {
-    var out: VertexOutput;
-    out.clip_position = mesh_position_local_to_clip(mesh.model, vec4<f32>(vertex.position, 1.0));
-    out.world_position = (mesh.model * vec4<f32>(vertex.position, 1.0)).xyz;
-    out.world_normal = normalize((mesh.model * vec4<f32>(vertex.normal, 0.0)).xyz);
-    out.uv = vertex.uv;
-    return out;
-}
+@group(2) @binding(0) var<uniform> material_color: vec4<f32>;
+@group(2) @binding(1) var<uniform> grid_thickness: f32;
+@group(2) @binding(2) var<uniform> grid_spacing: f32;
 
 @fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let grid = grid_pattern(in.uv);
-    return vec4<f32>(material.color.rgb, material.color.a * grid);
+fn fragment(
+    mesh: VertexOutput,
+) -> @location(0) vec4<f32> {
+    // Calculate barycentric coordinates
+    let barycentric = calculate_barycentric(mesh);
+    
+    // Calculate distance to the nearest edge
+    let edge_distance = min(min(barycentric.x, barycentric.y), barycentric.z);
+    
+    // Create wireframe effect - line width controlled by grid_thickness
+    let line_factor = smoothstep(0.0, grid_thickness, edge_distance);
+    
+    // Mix wireframe color with background
+    let final_color = mix(material_color, vec4<f32>(0.0, 0.0, 0.0, 0.0), line_factor);
+    
+    return final_color;
 }
 
-fn grid_pattern(uv: vec2<f32>) -> f32 {
-    let grid_uv = fract(uv / material.grid_spacing);
-    let grid_lines = step(grid_uv.x, material.grid_thickness) + 
-                     step(grid_uv.y, material.grid_thickness);
-    return min(grid_lines, 1.0);
+// Calculate barycentric coordinates
+fn calculate_barycentric(mesh: VertexOutput) -> vec3<f32> {
+    // Use screen-space derivatives to calculate barycentric coordinates
+    let dx = dpdx(mesh.position.xyz);
+    let dy = dpdy(mesh.position.xyz);
+    
+    // Calculate areas of the triangles formed by the derivatives
+    let area = cross(dx, dy);
+    
+    // Calculate barycentric coordinates based on the area
+    let barycentric = abs(area) / max(length(area), 0.00001);
+    
+    return barycentric;
 }

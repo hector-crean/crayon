@@ -41,6 +41,7 @@ itertools = { workspace = true }
 js-sys = { workspace = true}
 wasm-bindgen-futures = { workspace = true }
 bevy_asset_loader = { workspace = true }
+bevy_crayon_materials = { workspace = true }
 gloo-timers = { version ="0.3.0", features = ["futures"] }
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

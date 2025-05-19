@@ -4,15 +4,16 @@ use bevy::render::mesh::MeshVertexBufferLayout;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef, RenderPipelineDescriptor, PolygonMode};
 use bevy::{prelude::*, asset::Asset, asset::load_internal_asset};
 
-const SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(1234567890);
+const SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(1434567676767674);
 
+// This struct defines the data that will be passed to your shader
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct VoidMaterial {
     #[uniform(0)]
     pub color: LinearRgba,
-    #[uniform(0)]
+    #[uniform(1)]
     pub grid_thickness: f32,
-    #[uniform(0)]
+    #[uniform(2)]
     pub grid_spacing: f32,
 }
 

@@ -57,8 +57,8 @@ impl<T: Block3DLike> Heuristic<T> for WeightedRandomHeuristic {
         let weights: Vec<f32> = valid_states.iter().map(|state| {
             match state.block.block_kind() {
                 // Prioritize structural elements
-                BlockKind::Wall => 3.0,
-                BlockKind::Floor => 3.0,
+                BlockKind::Wall => 10.0,
+                BlockKind::Floor => 8.0,
                 
                 // Special elements are less common
                 BlockKind::Door => 3.0,  

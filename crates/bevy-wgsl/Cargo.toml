@@ -2,8 +2,10 @@
 [package]
 name = "bevy-wgsl"
 description = "Bevy WESL shaders"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 
 
 [dependencies]

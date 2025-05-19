@@ -31,4 +31,7 @@ pub enum WFCError {
 
     #[error("Node not found in graph")]
     NodeNotFound(NodeIndex),
+
+    #[error("Node not found at position {0:?}")]
+    NodeNotFoundAtPosition((usize, usize, usize)),
 }

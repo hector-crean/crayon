@@ -12,7 +12,8 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<VoidMaterial>>,
+    mut wireframe_materials: ResMut<Assets<VoidMaterial>>,
+    // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
   
     commands.spawn((
@@ -23,7 +24,7 @@ fn setup(
     // Add ambient light
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 0.3,
+        brightness: 1.0,
     });
 
     // Add directional light
@@ -42,11 +43,12 @@ fn setup(
         Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
         Transform::from_xyz(0.0, 0.0, 0.0),
         GlobalTransform::default(),
-        MeshMaterial3d(materials.add(VoidMaterial {
-            color: Color::rgba(0.0, 0.0, 1.0, 0.5).into(),
-            grid_thickness: 0.02,
+        MeshMaterial3d(wireframe_materials.add(VoidMaterial {
+        color: Color::rgba(0.0, 0.0, 1.0, 0.5).into(),
+            grid_thickness: 1.,
             grid_spacing: 0.1,
         })),
+       
     ));
    
 }
