@@ -1,0 +1,29 @@
+[package]
+name = "crayon_mcp"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rmcp = { version = "0.1.5", features = ["server", "transport-sse-server", "transport-io",  "client",
+    "transport-sse",
+    "transport-child-process",
+    "tower"] }
+schemars = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+futures = { workspace = true }
+axum =  { workspace = true }
+color-eyre = { workspace = true }
+strum = { workspace = true }
+
+
+[dev-dependencies]
+tokio-stream = { version = "0.1" }
+# tokio-util = { version = "0.7", features = ["io", "codec"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+
