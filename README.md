@@ -1,5 +1,6 @@
 
-![[/prototype.png]]
+
+![Prototype](https://github.com/hector-crean/crayon/blob/main/prototype.png)
 
 
 # Crayon 🖍️
